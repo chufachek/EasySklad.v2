@@ -39,6 +39,17 @@ if (!defined('DEBUG')) {
     define('DEBUG', $debug);
 }
 
+if (!defined('APP_BASE_PATH')) {
+    $appBasePath = getenv('BASE_PATH');
+    if ($appBasePath !== false) {
+        $appBasePath = '/' . trim($appBasePath, '/');
+        if ($appBasePath === '/') {
+            $appBasePath = '';
+        }
+        define('APP_BASE_PATH', $appBasePath);
+    }
+}
+
 if (DEBUG) {
     ini_set('display_errors', '1');
     ini_set('display_startup_errors', '1');

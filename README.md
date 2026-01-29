@@ -4,7 +4,7 @@
 - PHP 5.6+
 - MySQL 5.7/8+
 - Apache (желательно, для `.htaccess`)
- - Composer (для установки bramus/router)
+ - Bramus Router подключается локальным файлом (`public_html/src/Core/Router.php`)
 
 ## Быстрый старт
 
@@ -32,17 +32,12 @@ cp public_html/config/env.example .env
 - `JWT_SECRET`
 - `MAX_COMPANIES_PER_OWNER`
 
-### 3) Установите зависимости
-
-```bash
-composer install
-```
-
-### 4) Запуск
+### 3) Запуск
 
 **Apache:**
-- Укажите `DocumentRoot` на корень репозитория (где находятся `index.php` и `assets`).
-- `.htaccess` настроен на роутинг и красивые URL (см. варианты ниже).
+- Укажите `DocumentRoot` на `public_html`.
+- В `public_html` лежит `index.php` (front controller) и `.htaccess` с rewrite-правилами.
+- Убедитесь, что `assets` доступен из web-root (можно использовать симлинк `public_html/assets -> ../assets`).
 
 **Если не Apache:**
 - Прокиньте все запросы на `public_html/index.php` через nginx или встроенный сервер PHP.
@@ -50,10 +45,10 @@ composer install
 Пример встроенного сервера PHP (для локальной разработки):
 
 ```bash
-php -S localhost:8080 -t .
+php -S localhost:8080 -t public_html
 ```
 
-> Для фронтенда используйте DocumentRoot корня репозитория.
+> Для фронтенда используйте DocumentRoot `public_html`.
 
 ## Роутинг
 
@@ -68,14 +63,14 @@ php -S localhost:8080 -t .
 ## .htaccess (Apache)
 
 ### Вариант A — проект в корне домена
-Используйте `.htaccess` из корня репозитория.
+Используйте `public_html/.htaccess` (без `RewriteBase`).
 
 ```apache
 <IfModule mod_rewrite.c>
 RewriteEngine On
-RewriteBase /
+DirectoryIndex index.php
 
-RewriteRule ^(assets|vendor)/ - [L,NC]
+RewriteRule ^assets/ - [L,NC]
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
@@ -85,14 +80,16 @@ RewriteRule ^ index.php [QSA,L]
 ```
 
 ### Вариант B — проект в подпапке домена
-Скопируйте правила и укажите `RewriteBase` на подпапку (например `/finances/`):
+Скопируйте `public_html/.htaccess.subdir`, переименуйте в `.htaccess` и укажите `RewriteBase` на подпапку (например `/finances/`):
 
 ```apache
 <IfModule mod_rewrite.c>
 RewriteEngine On
+DirectoryIndex index.php
+
 RewriteBase /finances/
 
-RewriteRule ^(assets|vendor)/ - [L,NC]
+RewriteRule ^assets/ - [L,NC]
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
@@ -102,6 +99,11 @@ RewriteRule ^ index.php [QSA,L]
 ```
 
 > В подпапке `RewriteBase` должен совпадать с реальным путём проекта относительно корня домена.
+
+Если проект развёрнут в подпапке, также можно задать `BASE_PATH` в `.env`, например:
+```
+BASE_PATH=/finances
+```
 
 ## HTTPS
 
@@ -125,6 +127,16 @@ FORCE_HTTPS=true
 DEBUG=true
 ```
 Ошибки пишутся в `storage/logs/app.log`, а в production рекомендуем оставить `DEBUG=false`.
+
+## Health-check
+
+Для диагностики роутинга доступен маршрут:
+
+```
+GET /__health
+```
+
+Он возвращает `OK` и базовую информацию о base path и HTTPS.
 
 ## Авторизация
 
