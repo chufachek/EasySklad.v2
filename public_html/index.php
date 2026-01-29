@@ -7,6 +7,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
+$originalRequestUri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+
 $basePath = '';
 if (defined('APP_BASE_PATH')) {
     $basePath = APP_BASE_PATH;
@@ -23,17 +25,12 @@ if (!defined('APP_BASE_PATH')) {
     define('APP_BASE_PATH', $basePath);
 }
 
-$requestUri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+$requestUri = $originalRequestUri;
 $fallbackRequested = (isset($_GET['page']) || strpos($requestUri, 'index.php') !== false);
-$routingMode = $fallbackRequested ? 'fallback' : 'clean';
+$htaccessEnabled = getenv('ROUTER_HTACCESS') === '1';
+$routingMode = ($htaccessEnabled && !$fallbackRequested) ? 'CLEAN' : 'FALLBACK';
 
 $GLOBALS['routing_mode'] = $routingMode;
-
-$httpsStatus = is_https() ? '1' : '0';
-app_log('REQUEST_URI=' . (isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '')
-    . ' BASE_PATH=' . $basePath
-    . ' HTTPS=' . $httpsStatus
-    . ' ROUTING=' . $routingMode);
 
 if (defined('FORCE_HTTPS') && FORCE_HTTPS && !is_https()) {
     $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : (isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : '');
@@ -63,6 +60,16 @@ if ($basePath) {
 
 require BASE_PATH . '/routes/web.php';
 require BASE_PATH . '/routes/api.php';
+
+$requestMethod = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET';
+$matchInfo = $router->debugMatch($requestMethod, isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/');
+$resolvedRoute = $matchInfo['matched'] ? $matchInfo['pattern'] : '404';
+$httpsStatus = is_https() ? '1' : '0';
+app_log('REQUEST_URI=' . $originalRequestUri
+    . ' RESOLVED=' . $resolvedRoute
+    . ' HTTPS=' . $httpsStatus
+    . ' BASE_PATH=' . $basePath
+    . ' ROUTING=' . $routingMode);
 
 $router->set404(function () {
     http_response_code(404);

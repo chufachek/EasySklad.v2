@@ -71,12 +71,12 @@ function is_https()
 
 function routing_mode()
 {
-    return isset($GLOBALS['routing_mode']) ? $GLOBALS['routing_mode'] : 'clean';
+    return isset($GLOBALS['routing_mode']) ? $GLOBALS['routing_mode'] : 'CLEAN';
 }
 
 function is_fallback_routing()
 {
-    return routing_mode() === 'fallback';
+    return routing_mode() === 'FALLBACK';
 }
 
 function is_static_path($path)
