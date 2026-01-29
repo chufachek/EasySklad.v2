@@ -16,7 +16,7 @@ include __DIR__ . '/partials/layout-top.php';
         <div class="form-grid">
             <label class="field">
                 <span>Склад</span>
-                <select id="incomeWarehouse"></select>
+                <select id="incomeWarehouse" class="choice-select"></select>
             </label>
             <label class="field">
                 <span>Дата</span>

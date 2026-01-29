@@ -1,4 +1,29 @@
 const Selects = (() => {
+    const initSelect = (el, options = {}) => {
+        if (!el || !window.Choices) return null;
+        const element = el instanceof HTMLElement ? el : el[0];
+        if (!element) return null;
+        if (element._choicesInstance) {
+            element._choicesInstance.destroy();
+        }
+        const instance = new window.Choices(element, {
+            searchEnabled: true,
+            shouldSort: false,
+            itemSelectText: '',
+            ...options
+        });
+        element._choicesInstance = instance;
+        return instance;
+    };
+
+    const destroySelect = (el) => {
+        const element = el instanceof HTMLElement ? el : el[0];
+        if (element && element._choicesInstance) {
+            element._choicesInstance.destroy();
+            element._choicesInstance = null;
+        }
+    };
+
     const initCompanySelect = async () => {
         const companies = await Api.listCompanies();
         const select = $('#companySelect');
@@ -10,6 +35,7 @@ const Selects = (() => {
         const active = State.get('activeCompanyId') || companies[0]?.id || '';
         select.val(active);
         State.set('activeCompanyId', active);
+        initSelect(select);
     };
 
     const initWarehouseSelect = async () => {
@@ -19,12 +45,14 @@ const Selects = (() => {
         select.empty();
         if (!companyId) {
             select.append('<option value="">Нет складов</option>');
+            initSelect(select);
             return;
         }
         const warehouses = await Api.listWarehouses(companyId);
         if (warehouses.length === 0) {
             select.append('<option value="">Нет складов</option>');
             State.set('activeWarehouseId', null);
+            initSelect(select);
             return;
         }
         warehouses.forEach((warehouse) => {
@@ -33,6 +61,7 @@ const Selects = (() => {
         const activeWarehouse = State.get('activeWarehouseId') || warehouses[0].id;
         select.val(activeWarehouse);
         State.set('activeWarehouseId', activeWarehouse);
+        initSelect(select);
     };
 
     const bind = () => {
@@ -55,7 +84,8 @@ const Selects = (() => {
         await initCompanySelect();
         await initWarehouseSelect();
         bind();
+        $('.choice-select').each((_, element) => initSelect(element));
     };
 
-    return { init };
+    return { init, initSelect, destroySelect };
 })();

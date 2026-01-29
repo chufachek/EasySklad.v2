@@ -6,8 +6,13 @@ USE easy_sklad;
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(120) NOT NULL,
+    first_name VARCHAR(120) NOT NULL,
+    last_name VARCHAR(120) NULL,
+    username VARCHAR(120) NOT NULL UNIQUE,
     email VARCHAR(190) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
+    tariff VARCHAR(32) NOT NULL DEFAULT 'Free',
+    balance DECIMAL(12,2) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL
 ) ENGINE=InnoDB;
 
@@ -134,8 +139,8 @@ CREATE TABLE order_services (
     CONSTRAINT fk_order_services_service FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
-INSERT INTO users (id, name, email, password_hash, created_at) VALUES
-(1, 'Test Owner', 'test@example.com', '$2y$12$QM0cEvilg5XT98FKqCk70OpeuSMmSO3DqsUr3nLEFxPkIaYWqQvTq', NOW());
+INSERT INTO users (id, name, first_name, last_name, username, email, password_hash, tariff, balance, created_at) VALUES
+(1, 'Test Owner', 'Test', 'Owner', 'test_owner', 'test@example.com', '$2y$12$QM0cEvilg5XT98FKqCk70OpeuSMmSO3DqsUr3nLEFxPkIaYWqQvTq', 'Free', 0, NOW());
 
 INSERT INTO companies (id, name, inn, address, created_at) VALUES
 (1, 'Easy Sklad Demo', '1234567890', 'Demo street 1', NOW());

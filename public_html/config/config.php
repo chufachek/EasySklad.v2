@@ -27,6 +27,12 @@ function loadEnv($path)
 
 loadEnv(BASE_PATH . '/.env');
 
+if (!defined('FORCE_HTTPS')) {
+    $forceHttps = getenv('FORCE_HTTPS');
+    $forceHttps = $forceHttps !== false ? filter_var($forceHttps, FILTER_VALIDATE_BOOLEAN) : false;
+    define('FORCE_HTTPS', $forceHttps);
+}
+
 $config = array(
     'db' => array(
         'host' => getenv('DB_HOST') ? getenv('DB_HOST') : 'localhost',
@@ -42,6 +48,7 @@ $config = array(
     'app' => array(
         'env' => getenv('APP_ENV') ? getenv('APP_ENV') : 'local',
         'base_url' => getenv('APP_URL') ? getenv('APP_URL') : 'http://localhost',
+        'force_https' => FORCE_HTTPS,
         'log_file' => BASE_PATH . '/storage/logs/app.log',
         'max_companies_per_owner' => getenv('MAX_COMPANIES_PER_OWNER') ? intval(getenv('MAX_COMPANIES_PER_OWNER')) : 1,
     ),

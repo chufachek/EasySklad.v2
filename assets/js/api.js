@@ -3,6 +3,7 @@ window.__MOCK__ = true;
 const Api = (() => {
     const storageKey = 'easySkladMockDb';
     const delay = 200;
+    const apiBase = '';
 
     const seed = {
         companies: [
@@ -28,7 +29,16 @@ const Api = (() => {
             { id: 'o1', number: '0001', date: '2024-03-12', sum: 3400, status: 'Оплачен', items: ['Яблоки Гала', 'Доставка по городу'] },
             { id: 'o2', number: '0002', date: '2024-03-13', sum: 1200, status: 'В работе', items: ['Крем для рук'] },
             { id: 'o3', number: '0003', date: '2024-03-14', sum: 890, status: 'Новый', items: ['Бананы Эквадор'] }
-        ]
+        ],
+        me: {
+            id: 1,
+            email: 'test@example.com',
+            first_name: 'Анна',
+            last_name: 'Смирнова',
+            username: 'anna_sklad',
+            tariff: 'Free',
+            balance: 0
+        }
     };
 
     const loadDb = () => {
@@ -112,6 +122,24 @@ const Api = (() => {
         return respond({ success: true });
     };
 
+    const request = (url, options = {}) => $.ajax({
+        url: `${apiBase}${url}`,
+        method: options.method || 'GET',
+        data: options.data ? JSON.stringify(options.data) : undefined,
+        contentType: options.data ? 'application/json' : undefined,
+        dataType: 'json'
+    }).then((response) => response.data);
+
+    const getMe = () => request('/api/me').catch(() => respond(loadDb().me));
+
+    const updateMe = (payload) => request('/api/me', { method: 'PUT', data: payload })
+        .catch(() => {
+            const db = loadDb();
+            db.me = { ...db.me, ...payload };
+            saveDb(db);
+            return respond(db.me);
+        });
+
     return {
         listCompanies,
         listWarehouses,
@@ -121,6 +149,8 @@ const Api = (() => {
         saveProduct,
         saveService,
         saveWarehouse,
-        saveCompany
+        saveCompany,
+        getMe,
+        updateMe
     };
 })();

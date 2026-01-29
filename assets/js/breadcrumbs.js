@@ -23,20 +23,20 @@ const Breadcrumbs = (() => {
         }
 
         const items = [
-            { label: 'Главная', href: '/dashboard.php' }
+            { label: 'Easy склад', href: '/app/dashboard' }
         ];
 
         if (company) {
-            items.push({ label: company.name, href: '/company.php' });
+            items.push({ label: company.name, href: '/app/company' });
         }
 
         const config = pages[page] || { label: '' };
         if (config.parents?.includes('Компания') && !company) {
-            items.push({ label: 'Компания', href: '/company.php' });
+            items.push({ label: 'Компания', href: '/app/company' });
         }
 
         if (config.label && !(page === 'company' && company)) {
-            items.push({ label: config.label, href: `/${page}.php` });
+            items.push({ label: config.label, href: `/app/${page}` });
         }
 
         if (page === 'warehouses' && warehouse) {

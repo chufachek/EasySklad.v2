@@ -32,7 +32,18 @@ class AuthController
         }
 
         $hash = password_hash($data['password'], PASSWORD_BCRYPT);
-        $userId = UserModel::create($data['name'], $data['email'], $hash);
+        $usernameBase = preg_replace('/[^a-z0-9_]/i', '', strtok($data['email'], '@'));
+        $usernameBase = $usernameBase ? $usernameBase : 'user';
+        $userId = UserModel::create(array(
+            'name' => $data['name'],
+            'first_name' => $data['name'],
+            'last_name' => '',
+            'username' => UserModel::generateUniqueUsername($usernameBase),
+            'email' => $data['email'],
+            'password_hash' => $hash,
+            'tariff' => 'Free',
+            'balance' => 0,
+        ));
         $token = Auth::issueToken($userId);
         Response::success(array('token' => $token, 'user' => array('id' => $userId, 'name' => $data['name'], 'email' => $data['email'])), 201);
     }

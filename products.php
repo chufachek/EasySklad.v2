@@ -13,7 +13,7 @@ include __DIR__ . '/partials/layout-top.php';
 <div class="card">
     <div class="filters">
         <input type="text" id="productSearch" placeholder="Поиск по названию или артикулу">
-        <select id="productFilter">
+        <select id="productFilter" class="choice-select">
             <option value="all">Все</option>
             <option value="low">Низкий остаток</option>
             <option value="high">Хороший остаток</option>

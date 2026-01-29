@@ -31,12 +31,17 @@ PageHandlers.income = () => {
 
     const initSelect = async () => {
         const companyId = State.get('activeCompanyId');
-        if (!companyId) return;
-        const warehouses = await Api.listWarehouses(companyId);
         const select = $('#incomeWarehouse');
+        if (!companyId) {
+            select.empty().append('<option value=\"\">Нет складов</option>');
+            Selects.initSelect(select);
+            return;
+        }
+        const warehouses = await Api.listWarehouses(companyId);
         select.empty();
         warehouses.forEach((item) => select.append(`<option value="${item.id}">${item.name}</option>`));
         select.val(State.get('activeWarehouseId'));
+        Selects.initSelect(select);
     };
 
     $('#addIncomeRow').on('click', () => {

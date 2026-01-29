@@ -4,7 +4,8 @@ const State = (() => {
         activeCompanyId: null,
         activeWarehouseId: null,
         theme: 'light',
-        lastPage: 'dashboard'
+        lastPage: 'dashboard',
+        sidebarCollapsed: false
     };
 
     const load = () => {
