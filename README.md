@@ -4,6 +4,7 @@
 - PHP 5.6+
 - MySQL 5.7/8+
 - Apache (желательно, для `.htaccess`)
+ - Composer (для установки bramus/router)
 
 ## Быстрый старт
 
@@ -31,11 +32,17 @@ cp public_html/config/env.example .env
 - `JWT_SECRET`
 - `MAX_COMPANIES_PER_OWNER`
 
-### 3) Запуск
+### 3) Установите зависимости
+
+```bash
+composer install
+```
+
+### 4) Запуск
 
 **Apache:**
-- Укажите `DocumentRoot` на `public_html`.
-- `.htaccess` уже настроен на роутинг.
+- Укажите `DocumentRoot` на корень репозитория (где находятся `index.php` и `assets`).
+- `.htaccess` уже настроен на роутинг и красивые URL.
 
 **Если не Apache:**
 - Прокиньте все запросы на `public_html/index.php` через nginx или встроенный сервер PHP.
@@ -43,8 +50,36 @@ cp public_html/config/env.example .env
 Пример встроенного сервера PHP (для локальной разработки):
 
 ```bash
-php -S localhost:8080 -t public_html
+php -S localhost:8080 -t .
 ```
+
+> Для фронтенда используйте DocumentRoot корня репозитория.
+
+## Роутинг
+
+Используется Bramus Router с единым front controller (`index.php`) и файлами маршрутов:
+- `routes/web.php` — страницы
+- `routes/api.php` — API
+
+Пример публичных URL:
+- `/login`, `/register`, `/logout`
+- `/app`, `/app/dashboard`, `/app/products`, `/app/warehouses`
+
+## HTTPS
+
+### Боевой сервер
+- Используйте Let’s Encrypt (certbot) или сертификаты в панели хостинга.
+- Включите редирект на HTTPS через конфиг `FORCE_HTTPS`.
+
+### Локальная разработка
+- Рекомендуется проксировать приложение через локальный HTTPS (например, dev proxy в IDE или nginx).
+
+### Конфиг принудительного HTTPS
+В `.env` добавьте флаг:
+```
+FORCE_HTTPS=true
+```
+Если флаг включен, HTTP-запросы будут перенаправлены на HTTPS с учетом заголовков reverse-proxy (`X-Forwarded-Proto`).
 
 ## Авторизация
 

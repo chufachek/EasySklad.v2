@@ -1,46 +1,100 @@
 window.PageHandlers = window.PageHandlers || {};
 
 PageHandlers.profile = async () => {
-    const companies = await Api.listCompanies();
-    const container = $('#profileCompanies');
-    if (companies.length === 0) {
-        container.html('<div class="empty-state">Компаний пока нет</div>');
-        return;
-    }
-    container.html(`
-        <ul>
-            ${companies.map((company) => `<li><strong>${company.name}</strong> · ${company.city}</li>`).join('')}
-        </ul>
-    `);
+    let cachedUser = null;
 
-    $('#createCompanyBtn').on('click', () => {
-        Modal.open({
-            title: 'Создать компанию',
-            content: `
-                <label class="field">
-                    <span>Название</span>
-                    <input id="companyName" type="text" placeholder="ООО" />
-                </label>
-                <label class="field">
-                    <span>ИНН</span>
-                    <input id="companyInn" type="text" placeholder="7701234567" />
-                </label>
-                <label class="field">
-                    <span>Город</span>
-                    <input id="companyCity" type="text" placeholder="Москва" />
-                </label>
-            `,
-            onSubmit: async () => {
-                await Api.saveCompany({
-                    name: $('#companyName').val(),
-                    inn: $('#companyInn').val(),
-                    city: $('#companyCity').val(),
-                    tariff: 'Free'
+    const fieldMap = {
+        email: 'profileEmail',
+        first_name: 'profileFirstName',
+        last_name: 'profileLastName',
+        username: 'profileUsername'
+    };
+
+    const setFieldError = (field, message) => {
+        const inputId = fieldMap[field];
+        const input = inputId ? $(`#${inputId}`) : $();
+        const hint = $(`[data-error-for="${field}"]`);
+        input.closest('.field').toggleClass('error', Boolean(message));
+        hint.text(message || '');
+    };
+
+    const clearErrors = () => {
+        Object.keys(fieldMap).forEach((field) => setFieldError(field, ''));
+    };
+
+    const fillForm = (user) => {
+        $('#profileEmail').val(user.email || '');
+        $('#profileFirstName').val(user.first_name || '');
+        $('#profileLastName').val(user.last_name || '');
+        $('#profileUsername').val(user.username || '');
+        $('#profileCardUserId').text(user.id ? `#${user.id}` : '—');
+        $('#profileCardTariff').text(user.tariff || 'Free');
+        $('#profileCardBalance').text(`${Number(user.balance || 0).toLocaleString('ru-RU')} ₽`);
+    };
+
+    const loadUser = async () => {
+        try {
+            const user = await Api.getMe();
+            cachedUser = user;
+            fillForm(user);
+        } catch (error) {
+            Toast.show('Не удалось загрузить профиль', 'error');
+        }
+    };
+
+    $('#profileForm').on('submit', async (event) => {
+        event.preventDefault();
+        clearErrors();
+
+        const payload = {
+            email: $('#profileEmail').val().trim(),
+            first_name: $('#profileFirstName').val().trim(),
+            last_name: $('#profileLastName').val().trim(),
+            username: $('#profileUsername').val().trim()
+        };
+
+        let hasErrors = false;
+        if (!payload.email || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(payload.email)) {
+            setFieldError('email', 'Введите корректный email.');
+            hasErrors = true;
+        }
+        if (!payload.first_name) {
+            setFieldError('first_name', 'Введите имя.');
+            hasErrors = true;
+        }
+        if (!/^[a-zA-Z0-9_]{3,32}$/.test(payload.username)) {
+            setFieldError('username', 'Логин должен быть 3-32 символа (латиница, цифры, underscore).');
+            hasErrors = true;
+        }
+
+        if (hasErrors) {
+            Toast.show('Проверьте корректность заполнения формы', 'error');
+            return;
+        }
+
+        try {
+            const updated = await Api.updateMe(payload);
+            cachedUser = updated;
+            fillForm(updated);
+            Toast.show('Изменения сохранены');
+            $(document).trigger('profileUpdated', updated);
+        } catch (error) {
+            const response = error?.responseJSON;
+            if (response?.error?.fields) {
+                Object.entries(response.error.fields).forEach(([field, message]) => {
+                    setFieldError(field, message);
                 });
-                Modal.close();
-                Toast.show('Компания создана');
-                location.reload();
             }
-        });
+            Toast.show(response?.error?.message || 'Не удалось сохранить изменения', 'error');
+        }
     });
+
+    $('#profileCancel').on('click', () => {
+        if (cachedUser) {
+            clearErrors();
+            fillForm(cachedUser);
+        }
+    });
+
+    await loadUser();
 };

@@ -1,0 +1,18 @@
+{
+    "name": "easy-sklad/app",
+    "description": "Easy Sklad MVP",
+    "type": "project",
+    "require": {
+        "php": ">=5.6",
+        "bramus/router": "^1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Core\\": "public_html/src/Core/",
+            "Middleware\\": "public_html/src/Middleware/",
+            "Controllers\\": "public_html/src/Controllers/",
+            "Models\\": "public_html/src/Models/",
+            "Services\\": "public_html/src/Services/"
+        }
+    }
+}

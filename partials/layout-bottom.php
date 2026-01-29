@@ -3,6 +3,8 @@
 </div>
 <div id="toast-root"></div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="/assets/js/state.js"></script>
 <script src="/assets/js/api.js"></script>
 <script src="/assets/js/breadcrumbs.js"></script>

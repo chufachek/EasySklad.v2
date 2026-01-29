@@ -17,20 +17,25 @@ $pageTitle = 'Easy склад · Вход';
     <div class="logo">Easy <span>склад</span></div>
     <h1>Вход в аккаунт</h1>
     <p class="muted">Добро пожаловать! Управляйте складом быстро и удобно.</p>
-    <form>
+    <?php if (!empty($flash)) : ?>
+        <div class="alert alert-<?php echo htmlspecialchars($flash['type']); ?>">
+            <?php echo htmlspecialchars($flash['message']); ?>
+        </div>
+    <?php endif; ?>
+    <form method="post" action="/auth/login">
         <label class="field">
             <span>Email</span>
-            <input type="email" placeholder="name@company.ru" required>
+            <input type="email" name="email" placeholder="name@company.ru" required>
         </label>
         <label class="field">
             <span>Пароль</span>
-            <input type="password" placeholder="••••••••" required>
+            <input type="password" name="password" placeholder="••••••••" required>
         </label>
         <button class="btn btn-primary" type="submit">Войти</button>
     </form>
     <div class="auth-links">
         <span>Нет аккаунта?</span>
-        <a href="/register.php">Создать</a>
+        <a href="/register">Создать</a>
     </div>
 </div>
 </body>

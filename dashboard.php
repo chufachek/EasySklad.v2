@@ -36,14 +36,14 @@ include __DIR__ . '/partials/layout-top.php';
     <div class="card">
         <div class="card-header">
             <h2>Последние заказы</h2>
-            <a class="link" href="/orders.php">Все заказы</a>
+            <a class="link" href="/app/orders">Все заказы</a>
         </div>
         <div id="dashboardOrders" class="table-wrap"></div>
     </div>
     <div class="card">
         <div class="card-header">
             <h2>Низкие остатки</h2>
-            <a class="link" href="/products.php">К товарам</a>
+            <a class="link" href="/app/products">К товарам</a>
         </div>
         <div id="dashboardLowStock" class="table-wrap"></div>
     </div>
