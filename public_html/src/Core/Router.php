@@ -1,80 +1,197 @@
 <?php
-namespace Core;
+
+namespace Bramus\Router;
 
 class Router
 {
+    private $basePath = '';
     private $routes = array();
-    private $globalMiddleware = array();
+    private $notFoundCallback;
+    private $beforeRoutes = array();
+    private $afterRoutes = array();
+    private $namespace = '';
 
-    public function addGlobalMiddleware($middleware)
+    public function setBasePath($basePath)
     {
-        $this->globalMiddleware[] = $middleware;
+        $this->basePath = rtrim($basePath, '/');
+        if ($this->basePath === '/') {
+            $this->basePath = '';
+        }
+        return $this;
     }
 
-    public function add($method, $pattern, $handler, $middlewareList = array())
+    public function get($pattern, $callback)
     {
-        $this->routes[] = array(
-            'method' => strtoupper($method),
-            'pattern' => $pattern,
-            'handler' => $handler,
-            'middleware' => $middlewareList,
-        );
+        return $this->map('GET', $pattern, $callback);
     }
 
-    public function dispatch(Request $request)
+    public function post($pattern, $callback)
     {
-        $path = $request->getPath();
-        $method = $request->getMethod();
+        return $this->map('POST', $pattern, $callback);
+    }
 
-        foreach ($this->routes as $route) {
-            if ($route['method'] !== $method) {
+    public function put($pattern, $callback)
+    {
+        return $this->map('PUT', $pattern, $callback);
+    }
+
+    public function delete($pattern, $callback)
+    {
+        return $this->map('DELETE', $pattern, $callback);
+    }
+
+    public function patch($pattern, $callback)
+    {
+        return $this->map('PATCH', $pattern, $callback);
+    }
+
+    public function options($pattern, $callback)
+    {
+        return $this->map('OPTIONS', $pattern, $callback);
+    }
+
+    public function match($methods, $pattern, $callback)
+    {
+        return $this->map($methods, $pattern, $callback);
+    }
+
+    public function any($pattern, $callback)
+    {
+        return $this->map('GET|POST|PUT|DELETE|PATCH|OPTIONS', $pattern, $callback);
+    }
+
+    public function before($methods, $pattern, $callback)
+    {
+        $this->beforeRoutes[] = array($methods, $pattern, $callback);
+        return $this;
+    }
+
+    public function after($methods, $pattern, $callback)
+    {
+        $this->afterRoutes[] = array($methods, $pattern, $callback);
+        return $this;
+    }
+
+    public function mount($baseRoute, $callback)
+    {
+        $previousNamespace = $this->namespace;
+        $this->namespace .= $baseRoute;
+        call_user_func($callback);
+        $this->namespace = $previousNamespace;
+        return $this;
+    }
+
+    public function set404($callback)
+    {
+        $this->notFoundCallback = $callback;
+        return $this;
+    }
+
+    public function run($callback = null)
+    {
+        $dispatched = false;
+        $requestMethod = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET';
+        $requestUri = $this->getCurrentUri();
+
+        if ($requestMethod === 'HEAD') {
+            ob_start();
+            $requestMethod = 'GET';
+        }
+
+        foreach ($this->beforeRoutes as $route) {
+            list($methods, $pattern, $callback) = $route;
+            if (!$this->matchMethod($methods, $requestMethod)) {
                 continue;
             }
-            $params = $this->match($route['pattern'], $path);
-            if ($params !== false) {
-                $request->setParams($params);
-                $middlewareStack = array_merge($this->globalMiddleware, $route['middleware']);
-                $this->runMiddleware($middlewareStack, $request, $route['handler']);
-                return;
+            if ($this->matchRoute($pattern, $requestUri, $params)) {
+                call_user_func_array($callback, $params);
             }
         }
 
-        Response::error('NOT_FOUND', 'Route not found', 404);
+        foreach ($this->routes as $route) {
+            list($methods, $pattern, $callback) = $route;
+            if (!$this->matchMethod($methods, $requestMethod)) {
+                continue;
+            }
+
+            if ($this->matchRoute($pattern, $requestUri, $params)) {
+                $dispatched = true;
+                call_user_func_array($callback, $params);
+                break;
+            }
+        }
+
+        foreach ($this->afterRoutes as $route) {
+            list($methods, $pattern, $callback) = $route;
+            if (!$this->matchMethod($methods, $requestMethod)) {
+                continue;
+            }
+            if ($this->matchRoute($pattern, $requestUri, $params)) {
+                call_user_func_array($callback, $params);
+            }
+        }
+
+        if (!$dispatched) {
+            if ($this->notFoundCallback) {
+                call_user_func($this->notFoundCallback);
+            } else {
+                header($_SERVER['SERVER_PROTOCOL'] . ' 404 Not Found');
+                echo '404 Not Found';
+            }
+        }
+
+        if ($requestMethod === 'HEAD') {
+            ob_end_clean();
+        }
+
+        if ($callback && is_callable($callback)) {
+            call_user_func($callback, $dispatched);
+        }
     }
 
-    private function match($pattern, $path)
+    private function map($method, $pattern, $callback)
     {
-        $regex = preg_replace('#:([a-zA-Z0-9_]+)#', '(?P<$1>[^/]+)', $pattern);
-        $regex = '#^' . $regex . '$#';
-        if (preg_match($regex, $path, $matches)) {
-            $params = array();
+        $pattern = $this->namespace . $pattern;
+        $this->routes[] = array($method, $pattern, $callback);
+        return $this;
+    }
+
+    private function getCurrentUri()
+    {
+        $uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
+        $uri = parse_url($uri, PHP_URL_PATH);
+
+        if ($this->basePath && strpos($uri, $this->basePath) === 0) {
+            $uri = substr($uri, strlen($this->basePath));
+        }
+
+        if ($uri === '') {
+            $uri = '/';
+        }
+
+        return $uri;
+    }
+
+    private function matchMethod($methods, $requestMethod)
+    {
+        return preg_match('#^(' . $methods . ')$#i', $requestMethod);
+    }
+
+    private function matchRoute($route, $uri, &$params = array())
+    {
+        $route = str_replace('/', '\/', $route);
+        $route = preg_replace('/\(\?P\<([a-zA-Z][a-zA-Z0-9_]*)\>/', '(?P<$1>', $route);
+        $route = '#^' . $route . '$#';
+
+        if (preg_match($route, $uri, $matches)) {
             foreach ($matches as $key => $value) {
                 if (!is_int($key)) {
                     $params[$key] = $value;
                 }
             }
-            return $params;
+            return true;
         }
+
         return false;
-    }
-
-    private function runMiddleware($middlewareStack, Request $request, $handler)
-    {
-        $next = function () use ($handler, $request) {
-            call_user_func($handler, $request);
-        };
-
-        while ($middleware = array_pop($middlewareStack)) {
-            $next = $this->makeNext($middleware, $next, $request);
-        }
-
-        $next();
-    }
-
-    private function makeNext($middleware, $next, Request $request)
-    {
-        return function () use ($middleware, $next, $request) {
-            $middleware->handle($request, $next);
-        };
     }
 }

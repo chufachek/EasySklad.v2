@@ -4,50 +4,51 @@ use Core\Auth;
 use Core\Validator;
 use Models\UserModel;
 
-$redirect = function ($path, $status = 302) {
-    header('Location: ' . $path, true, $status);
-    exit;
-};
-
 $flash = function ($type, $message) {
     $_SESSION['flash'] = array('type' => $type, 'message' => $message);
 };
 
-$requireAuth = function () use ($redirect) {
-    if (empty($_SESSION['user_id'])) {
-        $_SESSION['lastPage'] = $_SERVER['REQUEST_URI'] ?? '/app';
-        $redirect('/login');
+$requireAuth = function () {
+    if (empty($_SESSION['user_id']) && empty($_SESSION['auth_token'])) {
+        $_SESSION['lastPage'] = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : base_url('/app');
+        redirect('/login');
     }
 };
 
-$router->get('/', function () use ($redirect) {
-    if (!empty($_SESSION['user_id'])) {
-        $redirect('/app');
-    }
-    $redirect('/login');
+$router->get('/__health', function () {
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "OK\n";
+    echo 'base_path=' . base_path() . "\n";
+    echo 'https=' . (is_https() ? '1' : '0') . "\n";
+    echo 'request_uri=' . (isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '') . "\n";
 });
 
-$router->get('/login', function () use ($redirect) {
+$router->get('/', function () {
     if (!empty($_SESSION['user_id'])) {
-        $redirect('/app');
+        redirect('/app');
     }
-    $flashMessage = $_SESSION['flash'] ?? null;
+    redirect('/login');
+});
+
+$router->get('/login', function () {
+    if (!empty($_SESSION['user_id'])) {
+        redirect('/app');
+    }
+    $flashMessage = isset($_SESSION['flash']) ? $_SESSION['flash'] : null;
     unset($_SESSION['flash']);
-    $flash = $flashMessage;
-    include BASE_PATH . '/login.php';
+    render('login', array('flash' => $flashMessage));
 });
 
-$router->get('/register', function () use ($redirect) {
+$router->get('/register', function () {
     if (!empty($_SESSION['user_id'])) {
-        $redirect('/app');
+        redirect('/app');
     }
-    $flashMessage = $_SESSION['flash'] ?? null;
+    $flashMessage = isset($_SESSION['flash']) ? $_SESSION['flash'] : null;
     unset($_SESSION['flash']);
-    $flash = $flashMessage;
-    include BASE_PATH . '/register.php';
+    render('register', array('flash' => $flashMessage));
 });
 
-$router->post('/auth/login', function () use ($request, $redirect, $flash) {
+$router->post('/auth/login', function () use ($request, $flash) {
     $data = $request->getBody();
     $errors = array();
 
@@ -63,29 +64,29 @@ $router->post('/auth/login', function () use ($request, $redirect, $flash) {
 
     if ($errors) {
         $flash('error', 'Проверьте корректность введённых данных.');
-        $redirect('/login');
+        redirect('/login');
     }
 
     $user = UserModel::findByEmail($email);
     if (!$user || !password_verify($password, $user['password_hash'])) {
         $flash('error', 'Неверный email или пароль.');
-        $redirect('/login');
+        redirect('/login');
     }
 
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['auth_token'] = Auth::issueToken($user['id']);
 
-    $target = $_SESSION['lastPage'] ?? '/app';
+    $target = isset($_SESSION['lastPage']) ? $_SESSION['lastPage'] : '/app';
     unset($_SESSION['lastPage']);
 
     if (strpos($target, '/app') !== 0) {
         $target = '/app';
     }
 
-    $redirect($target);
+    redirect($target);
 });
 
-$router->post('/auth/register', function () use ($request, $redirect, $flash) {
+$router->post('/auth/register', function () use ($request, $flash) {
     $data = $request->getBody();
     $errors = array();
 
@@ -105,16 +106,16 @@ $router->post('/auth/register', function () use ($request, $redirect, $flash) {
 
     if ($errors) {
         $flash('error', 'Проверьте корректность введённых данных.');
-        $redirect('/register');
+        redirect('/register');
     }
 
     if (UserModel::findByEmail($email)) {
         $flash('error', 'Этот email уже зарегистрирован.');
-        $redirect('/register');
+        redirect('/register');
     }
 
     $usernameBase = preg_replace('/[^a-z0-9_]/i', '', strtok($email, '@'));
-    $usernameBase = $usernameBase ?: 'user';
+    $usernameBase = $usernameBase ? $usernameBase : 'user';
     $username = UserModel::generateUniqueUsername($usernameBase);
 
     $hash = password_hash($password, PASSWORD_BCRYPT);
@@ -130,10 +131,10 @@ $router->post('/auth/register', function () use ($request, $redirect, $flash) {
     ));
 
     $flash('success', 'Регистрация успешна, войдите в аккаунт.');
-    $redirect('/login');
+    redirect('/login');
 });
 
-$router->get('/logout', function () use ($redirect) {
+$router->get('/logout', function () {
     $_SESSION = array();
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();
@@ -142,60 +143,53 @@ $router->get('/logout', function () use ($redirect) {
         );
     }
     session_destroy();
-    $redirect('/login');
+    redirect('/login');
 });
 
-$router->get('/app', function () use ($requireAuth) {
+$router->before('GET|POST', '/app/.*', function () use ($requireAuth) {
     $requireAuth();
-    include BASE_PATH . '/dashboard.php';
 });
 
-$router->get('/app/profile', function () use ($requireAuth) {
-    $requireAuth();
-    include BASE_PATH . '/profile.php';
+$router->get('/app', function () {
+    redirect('/app/dashboard');
 });
 
-$router->get('/app/dashboard', function () use ($requireAuth) {
-    $requireAuth();
-    include BASE_PATH . '/dashboard.php';
+$router->get('/app/dashboard', function () {
+    render('dashboard');
 });
 
-$router->get('/app/pos', function () use ($requireAuth) {
-    $requireAuth();
-    include BASE_PATH . '/pos.php';
+$router->get('/app/profile', function () {
+    render('profile');
 });
 
-$router->get('/app/company', function () use ($requireAuth) {
-    $requireAuth();
-    include BASE_PATH . '/company.php';
+$router->get('/app/pos', function () {
+    render('pos');
 });
 
-$router->get('/app/warehouses', function () use ($requireAuth) {
-    $requireAuth();
-    include BASE_PATH . '/warehouses.php';
+$router->get('/app/company', function () {
+    render('company');
 });
 
-$router->get('/app/products', function () use ($requireAuth) {
-    $requireAuth();
-    include BASE_PATH . '/products.php';
+$router->get('/app/warehouses', function () {
+    render('warehouses');
 });
 
-$router->get('/app/categories', function () use ($requireAuth) {
-    $requireAuth();
-    include BASE_PATH . '/categories.php';
+$router->get('/app/products', function () {
+    render('products');
 });
 
-$router->get('/app/income', function () use ($requireAuth) {
-    $requireAuth();
-    include BASE_PATH . '/income.php';
+$router->get('/app/categories', function () {
+    render('categories');
 });
 
-$router->get('/app/orders', function () use ($requireAuth) {
-    $requireAuth();
-    include BASE_PATH . '/orders.php';
+$router->get('/app/income', function () {
+    render('income');
 });
 
-$router->get('/app/services', function () use ($requireAuth) {
-    $requireAuth();
-    include BASE_PATH . '/services.php';
+$router->get('/app/orders', function () {
+    render('orders');
+});
+
+$router->get('/app/services', function () {
+    render('services');
 });

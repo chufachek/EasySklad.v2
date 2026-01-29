@@ -34,6 +34,11 @@ $router->before('GET|POST|PUT|DELETE|OPTIONS', '/api/.*', function () use ($appl
     $applyJson();
 });
 
+$router->options('/api/.*', function () {
+    header('Content-Type: application/json');
+    echo json_encode(array('ok' => true));
+});
+
 $router->post('/api/auth/register', function () use ($dispatch) {
     $dispatch(array(AuthController::class, 'register'));
 });
