@@ -46,6 +46,10 @@
                 <i data-lucide="boxes"></i>
                 <span>Товары</span>
             </a>
+            <a href="/app/categories" data-page="categories" title="Категории">
+                <i data-lucide="tag"></i>
+                <span>Категории</span>
+            </a>
             <a href="/app/profile" data-page="profile" title="Профиль">
                 <i data-lucide="user"></i>
                 <span>Профиль</span>

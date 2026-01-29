@@ -13,13 +13,15 @@ class ErrorHandler
     {
         $errorMessage = '[' . date('c') . '] ' . $message . ' in ' . $file . ':' . $line;
         error_log($errorMessage . "\n", 3, config('app.log_file'));
-        Response::error('SERVER_ERROR', 'Server error', 500);
+        $responseMessage = (defined('DEBUG') && DEBUG) ? $message : 'Server error';
+        Response::error('SERVER_ERROR', $responseMessage, 500);
     }
 
     public static function handleException($exception)
     {
         $errorMessage = '[' . date('c') . '] ' . $exception->getMessage() . ' in ' . $exception->getFile() . ':' . $exception->getLine();
         error_log($errorMessage . "\n", 3, config('app.log_file'));
-        Response::error('SERVER_ERROR', 'Server error', 500);
+        $responseMessage = (defined('DEBUG') && DEBUG) ? $exception->getMessage() : 'Server error';
+        Response::error('SERVER_ERROR', $responseMessage, 500);
     }
 }

@@ -1,12 +1,6 @@
 <header class="header">
     <div class="header-left">
-        <button class="icon-button sidebar-toggle" id="sidebarMobileToggle" aria-label="Открыть меню">
-            <i data-lucide="menu"></i>
-        </button>
-        <button class="icon-button sidebar-toggle" id="sidebarToggle" aria-label="Свернуть меню">
-            <i data-lucide="panel-left"></i>
-        </button>
-        <div class="logo">Easy <span>склад</span></div>
+        <div class="logo">Easy. <span>склад</span></div>
     </div>
     <div class="header-selects">
         <label class="field">
@@ -19,11 +13,19 @@
         </label>
     </div>
     <div class="header-actions">
-        <a class="btn btn-primary" href="/app/income">+ Приход</a>
-        <a class="btn btn-secondary" href="/app/orders">+ Заказ</a>
-        <a class="btn btn-ghost" href="/app/pos">Касса</a>
+        <button class="btn btn-primary" type="button" data-quick="income">+ Приход</button>
+        <button class="btn btn-secondary" type="button" data-quick="order">+ Заказ</button>
+        <button class="btn btn-ghost" type="button" data-quick="pos">Касса</button>
     </div>
     <div class="header-right">
+        <div class="header-controls">
+            <button class="icon-button sidebar-toggle" id="sidebarMobileToggle" aria-label="Открыть меню">
+                <i data-lucide="menu"></i>
+            </button>
+            <button class="icon-button sidebar-toggle" id="sidebarToggle" aria-label="Свернуть меню">
+                <i data-lucide="panel-left"></i>
+            </button>
+        </div>
         <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
             <span class="theme-icon">🌙</span>
         </button>

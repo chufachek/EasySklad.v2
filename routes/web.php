@@ -180,6 +180,11 @@ $router->get('/app/products', function () use ($requireAuth) {
     include BASE_PATH . '/products.php';
 });
 
+$router->get('/app/categories', function () use ($requireAuth) {
+    $requireAuth();
+    include BASE_PATH . '/categories.php';
+});
+
 $router->get('/app/income', function () use ($requireAuth) {
     $requireAuth();
     include BASE_PATH . '/income.php';

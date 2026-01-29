@@ -5,6 +5,7 @@ const Breadcrumbs = (() => {
         company: { label: 'Компания' },
         warehouses: { label: 'Склады', parents: ['Компания'] },
         products: { label: 'Товары', parents: ['Компания'] },
+        categories: { label: 'Категории', parents: ['Компания'] },
         income: { label: 'Приход', parents: ['Компания'] },
         orders: { label: 'Заказы', parents: ['Компания'] },
         services: { label: 'Услуги', parents: ['Компания'] },
