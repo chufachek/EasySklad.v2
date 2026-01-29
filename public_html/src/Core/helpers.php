@@ -23,10 +23,18 @@ function base_url($path = '')
     $basePath = base_path();
 
     if ($path === '' || $path === '/') {
+        if (is_fallback_routing()) {
+            return $basePath . '/index.php';
+        }
         return $basePath !== '' ? $basePath . '/' : '/';
     }
 
     $path = '/' . ltrim($path, '/');
+
+    if (is_fallback_routing() && !is_static_path($path)) {
+        $page = ltrim($path, '/');
+        return $basePath . '/index.php?page=' . $page;
+    }
 
     return $basePath . $path;
 }
@@ -59,6 +67,27 @@ function is_https()
     $forwardedSsl = !empty($_SERVER['HTTP_X_FORWARDED_SSL']) ? strtolower($_SERVER['HTTP_X_FORWARDED_SSL']) : '';
 
     return ($https || $port || $forwardedProto === 'https' || $forwardedSsl === 'on');
+}
+
+function routing_mode()
+{
+    return isset($GLOBALS['routing_mode']) ? $GLOBALS['routing_mode'] : 'clean';
+}
+
+function is_fallback_routing()
+{
+    return routing_mode() === 'fallback';
+}
+
+function is_static_path($path)
+{
+    $path = '/' . ltrim($path, '/');
+
+    if (strpos($path, '/assets/') === 0) {
+        return true;
+    }
+
+    return (bool)preg_match('/\\.[a-z0-9]+$/i', $path);
 }
 
 function app_log($message)
