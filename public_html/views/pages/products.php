@@ -1,7 +1,6 @@
 <?php
 $pageTitle = 'Easy склад · Товары';
 $page = 'products';
-include __DIR__ . '/partials/layout-top.php';
 ?>
 <div class="page-header">
     <div>
@@ -24,4 +23,3 @@ include __DIR__ . '/partials/layout-top.php';
     </div>
     <div id="productsTable" class="table-wrap"></div>
 </div>
-<?php include __DIR__ . '/partials/layout-bottom.php'; ?>

@@ -8,6 +8,8 @@ use Controllers\ProductsController;
 use Controllers\IncomeController;
 use Controllers\OrdersController;
 use Controllers\ServicesController;
+use Controllers\CategoriesController;
+use Controllers\DashboardController;
 use Middleware\AuthMiddleware;
 use Middleware\JsonMiddleware;
 
@@ -30,6 +32,11 @@ $dispatch = function ($handler, $params = array()) use ($request) {
 
 $router->before('GET|POST|PUT|DELETE|OPTIONS', '/api/.*', function () use ($applyJson) {
     $applyJson();
+});
+
+$router->options('/api/.*', function () {
+    header('Content-Type: application/json');
+    echo json_encode(array('ok' => true));
 });
 
 $router->post('/api/auth/register', function () use ($dispatch) {
@@ -153,4 +160,29 @@ $router->put('/api/services/(\d+)', function ($id) use ($applyAuth, $dispatch) {
 $router->delete('/api/services/(\d+)', function ($id) use ($applyAuth, $dispatch) {
     $applyAuth();
     $dispatch(array(ServicesController::class, 'delete'), array('id' => $id));
+});
+
+$router->get('/api/companies/(\d+)/categories', function ($companyId) use ($applyAuth, $dispatch) {
+    $applyAuth();
+    $dispatch(array(CategoriesController::class, 'index'), array('companyId' => $companyId));
+});
+
+$router->post('/api/companies/(\d+)/categories', function ($companyId) use ($applyAuth, $dispatch) {
+    $applyAuth();
+    $dispatch(array(CategoriesController::class, 'store'), array('companyId' => $companyId));
+});
+
+$router->put('/api/categories/(\d+)', function ($id) use ($applyAuth, $dispatch) {
+    $applyAuth();
+    $dispatch(array(CategoriesController::class, 'update'), array('id' => $id));
+});
+
+$router->delete('/api/categories/(\d+)', function ($id) use ($applyAuth, $dispatch) {
+    $applyAuth();
+    $dispatch(array(CategoriesController::class, 'delete'), array('id' => $id));
+});
+
+$router->get('/api/dashboard', function () use ($applyAuth, $dispatch) {
+    $applyAuth();
+    $dispatch(array(DashboardController::class, 'show'));
 });

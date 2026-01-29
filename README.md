@@ -4,7 +4,7 @@
 - PHP 5.6+
 - MySQL 5.7/8+
 - Apache (желательно, для `.htaccess`)
- - Composer (для установки bramus/router)
+ - Bramus Router подключается локальным файлом (`public_html/src/Core/Router.php`)
 
 ## Быстрый старт
 
@@ -32,17 +32,13 @@ cp public_html/config/env.example .env
 - `JWT_SECRET`
 - `MAX_COMPANIES_PER_OWNER`
 
-### 3) Установите зависимости
-
-```bash
-composer install
-```
-
-### 4) Запуск
+### 3) Запуск
 
 **Apache:**
-- Укажите `DocumentRoot` на корень репозитория (где находятся `index.php` и `assets`).
-- `.htaccess` уже настроен на роутинг и красивые URL.
+- Укажите `DocumentRoot` на `public_html`.
+- В `public_html` лежит `index.php` (front controller) и `.htaccess` с rewrite-правилами.
+- Убедитесь, что `assets` доступен из web-root (можно использовать симлинк `public_html/assets -> ../assets`).
+ - Если файлы лежат не в реальном web-root (обычно `public_html`), то rewrite не сработает.
 
 **Если не Apache:**
 - Прокиньте все запросы на `public_html/index.php` через nginx или встроенный сервер PHP.
@@ -50,10 +46,10 @@ composer install
 Пример встроенного сервера PHP (для локальной разработки):
 
 ```bash
-php -S localhost:8080 -t .
+php -S localhost:8080 -t public_html
 ```
 
-> Для фронтенда используйте DocumentRoot корня репозитория.
+> Для фронтенда используйте DocumentRoot `public_html`.
 
 ## Роутинг
 
@@ -64,6 +60,99 @@ php -S localhost:8080 -t .
 Пример публичных URL:
 - `/login`, `/register`, `/logout`
 - `/app`, `/app/dashboard`, `/app/products`, `/app/warehouses`
+
+## Диагностика web-root и mod_rewrite (обязательно при проблемах с ЧПУ)
+
+В `public_html` добавлены диагностические файлы:
+- `__ping.php` — показывает `PING OK`, переменные запроса и `ROUTER_HTACCESS` (если `.htaccess` прочитан).
+- `__rewrite_test.html` — простая страница со ссылкой на `/__rewrite_probe`.
+- `__rewrite_probe` — работает ТОЛЬКО если включён mod_rewrite (переписывается на `__ping.php`).
+- `__route_selftest.php` — self-test всех ключевых URL без `*.php`.
+
+Порядок проверки:
+1. Откройте `/__ping.php` — должны увидеть `PING OK` и `ROUTER_HTACCESS=1`.
+2. Откройте `/__rewrite_probe` — должны увидеть `PING OK`.
+3. Откройте `/__health` — должны увидеть `OK ROUTER`.
+4. Откройте `/__route_selftest.php` — все строки должны быть `matched=yes`.
+
+Если `/__rewrite_probe` не открывается (403 или текст из файла), значит `.htaccess` не читается
+или `mod_rewrite`/`AllowOverride` отключены. В этом случае используйте fallback-режим:
+`/index.php?page=login` и ссылки будут генерироваться автоматически в query-формате.
+
+## .htaccess (Apache)
+
+### Вариант A — проект в корне домена
+Используйте `public_html/.htaccess` (без `RewriteBase`).
+
+```apache
+Options -MultiViews
+DirectoryIndex index.php
+SetEnv ROUTER_HTACCESS 1
+
+<Files "__rewrite_probe">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
+</Files>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteRule ^__rewrite_probe$ __ping.php [L,QSA]
+
+    RewriteRule ^assets/ - [L,NC]
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+```
+
+### Вариант B — проект в подпапке домена
+Скопируйте `public_html/.htaccess.subdir`, переименуйте в `.htaccess` и укажите `RewriteBase` на подпапку (например `/finances/`):
+
+```apache
+Options -MultiViews
+DirectoryIndex index.php
+SetEnv ROUTER_HTACCESS 1
+
+<Files "__rewrite_probe">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
+</Files>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteBase /finances/
+
+    RewriteRule ^__rewrite_probe$ __ping.php [L,QSA]
+
+    RewriteRule ^assets/ - [L,NC]
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+```
+
+> В подпапке `RewriteBase` должен совпадать с реальным путём проекта относительно корня домена.
+> Если `/__ping.php` показывает `SCRIPT_NAME=/subdir/__ping.php`, значит нужен `RewriteBase /subdir/`.
+> При включенном `.htaccess` переменная `ROUTER_HTACCESS` должна быть равна `1`.
+
+Если проект развёрнут в подпапке, также можно задать `BASE_PATH` в `.env`, например:
+```
+BASE_PATH=/finances
+```
 
 ## HTTPS
 
@@ -80,6 +169,24 @@ php -S localhost:8080 -t .
 FORCE_HTTPS=true
 ```
 Если флаг включен, HTTP-запросы будут перенаправлены на HTTPS с учетом заголовков reverse-proxy (`X-Forwarded-Proto`).
+
+## Debug-режим
+В `.env` можно включить подробные ошибки:
+```
+DEBUG=true
+```
+Ошибки пишутся в `storage/logs/app.log`, а в production рекомендуем оставить `DEBUG=false`.
+В debug-режиме в шапке отображается индикатор `Routing: CLEAN` или `Routing: FALLBACK`.
+
+## Health-check
+
+Для диагностики роутинга доступен маршрут:
+
+```
+GET /__health
+```
+
+Он возвращает `OK ROUTER` и данные о `uri`, `basePath`, `routingMode`, `timestamp`.
 
 ## Авторизация
 
@@ -167,6 +274,15 @@ Authorization: Bearer <token>
 - `POST /api/companies/:companyId/services` `{ name, price, description? }`
 - `PUT /api/services/:id` `{ name, price, description? }`
 - `DELETE /api/services/:id`
+
+### Categories
+- `GET /api/companies/:companyId/categories`
+- `POST /api/companies/:companyId/categories` `{ name }`
+- `PUT /api/categories/:id` `{ name }`
+- `DELETE /api/categories/:id`
+
+### Dashboard
+- `GET /api/dashboard?companyId=&warehouseId=&range=7d`
 
 ## Тестовые данные
 - Пользователь: `test@example.com`

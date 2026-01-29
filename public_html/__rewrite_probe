@@ -1,0 +1,2 @@
+If you can read this file, mod_rewrite is NOT working or .htaccess is ignored.
+This URL should be rewritten to /__ping.php when rewrite works.

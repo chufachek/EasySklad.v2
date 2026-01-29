@@ -33,6 +33,31 @@ if (!defined('FORCE_HTTPS')) {
     define('FORCE_HTTPS', $forceHttps);
 }
 
+if (!defined('DEBUG')) {
+    $debug = getenv('DEBUG');
+    $debug = $debug !== false ? filter_var($debug, FILTER_VALIDATE_BOOLEAN) : false;
+    define('DEBUG', $debug);
+}
+
+if (!defined('APP_BASE_PATH')) {
+    $appBasePath = getenv('BASE_PATH');
+    if ($appBasePath !== false) {
+        $appBasePath = '/' . trim($appBasePath, '/');
+        if ($appBasePath === '/') {
+            $appBasePath = '';
+        }
+        define('APP_BASE_PATH', $appBasePath);
+    }
+}
+
+if (DEBUG) {
+    ini_set('display_errors', '1');
+    ini_set('display_startup_errors', '1');
+    error_reporting(E_ALL);
+} else {
+    ini_set('display_errors', '0');
+}
+
 $config = array(
     'db' => array(
         'host' => getenv('DB_HOST') ? getenv('DB_HOST') : 'localhost',
@@ -49,6 +74,7 @@ $config = array(
         'env' => getenv('APP_ENV') ? getenv('APP_ENV') : 'local',
         'base_url' => getenv('APP_URL') ? getenv('APP_URL') : 'http://localhost',
         'force_https' => FORCE_HTTPS,
+        'debug' => DEBUG,
         'log_file' => BASE_PATH . '/storage/logs/app.log',
         'max_companies_per_owner' => getenv('MAX_COMPANIES_PER_OWNER') ? intval(getenv('MAX_COMPANIES_PER_OWNER')) : 1,
     ),

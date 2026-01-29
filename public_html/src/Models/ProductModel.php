@@ -7,9 +7,11 @@ class ProductModel
 {
     public static function forWarehouse($warehouseId, $search, $limit, $offset)
     {
-        $query = 'SELECT p.id, p.warehouse_id, p.sku, p.name, p.price, p.cost, p.unit, p.min_stock, s.qty
+        $query = 'SELECT p.id, p.warehouse_id, p.category_id, p.sku, p.name, p.price, p.cost, p.unit, p.min_stock, s.qty,
+                c.name as category_name
             FROM products p
             LEFT JOIN product_stocks s ON s.product_id = p.id AND s.warehouse_id = p.warehouse_id
+            LEFT JOIN categories c ON c.id = p.category_id
             WHERE p.warehouse_id = ?';
         $params = array($warehouseId);
         if ($search) {
@@ -32,17 +34,17 @@ class ProductModel
         return $stmt->fetchAll();
     }
 
-    public static function create($warehouseId, $sku, $name, $price, $cost, $unit, $minStock)
+    public static function create($warehouseId, $categoryId, $sku, $name, $price, $cost, $unit, $minStock)
     {
-        $stmt = Db::getInstance()->prepare('INSERT INTO products (warehouse_id, sku, name, price, cost, unit, min_stock, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())');
-        $stmt->execute(array($warehouseId, $sku, $name, $price, $cost, $unit, $minStock));
+        $stmt = Db::getInstance()->prepare('INSERT INTO products (warehouse_id, category_id, sku, name, price, cost, unit, min_stock, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())');
+        $stmt->execute(array($warehouseId, $categoryId, $sku, $name, $price, $cost, $unit, $minStock));
         return Db::getInstance()->lastInsertId();
     }
 
-    public static function update($id, $sku, $name, $price, $cost, $unit, $minStock)
+    public static function update($id, $categoryId, $sku, $name, $price, $cost, $unit, $minStock)
     {
-        $stmt = Db::getInstance()->prepare('UPDATE products SET sku = ?, name = ?, price = ?, cost = ?, unit = ?, min_stock = ? WHERE id = ?');
-        $stmt->execute(array($sku, $name, $price, $cost, $unit, $minStock, $id));
+        $stmt = Db::getInstance()->prepare('UPDATE products SET category_id = ?, sku = ?, name = ?, price = ?, cost = ?, unit = ?, min_stock = ? WHERE id = ?');
+        $stmt->execute(array($categoryId, $sku, $name, $price, $cost, $unit, $minStock, $id));
     }
 
     public static function findById($id)

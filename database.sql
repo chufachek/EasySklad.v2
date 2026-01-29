@@ -44,9 +44,20 @@ CREATE TABLE warehouses (
     CONSTRAINT fk_warehouses_company FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+CREATE TABLE categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    company_id INT NOT NULL,
+    name VARCHAR(190) NOT NULL,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uq_categories_company_name (company_id, name),
+    INDEX idx_categories_company (company_id),
+    CONSTRAINT fk_categories_company FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     warehouse_id INT NOT NULL,
+    category_id INT NULL,
     sku VARCHAR(64) NOT NULL,
     name VARCHAR(190) NOT NULL,
     price DECIMAL(12,2) NOT NULL DEFAULT 0,
@@ -56,7 +67,9 @@ CREATE TABLE products (
     created_at DATETIME NOT NULL,
     UNIQUE KEY uq_products_sku (warehouse_id, sku),
     INDEX idx_products_warehouse (warehouse_id),
-    CONSTRAINT fk_products_warehouse FOREIGN KEY (warehouse_id) REFERENCES warehouses(id) ON DELETE CASCADE
+    INDEX idx_products_category (category_id),
+    CONSTRAINT fk_products_warehouse FOREIGN KEY (warehouse_id) REFERENCES warehouses(id) ON DELETE CASCADE,
+    CONSTRAINT fk_products_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE product_stocks (
@@ -151,9 +164,13 @@ INSERT INTO company_users (company_id, user_id, role) VALUES
 INSERT INTO warehouses (id, company_id, name, address, created_at) VALUES
 (1, 1, 'Main Warehouse', 'Warehouse street 1', NOW());
 
-INSERT INTO products (id, warehouse_id, sku, name, price, cost, unit, min_stock, created_at) VALUES
-(1, 1, 'SKU-001', 'Test Product A', 100.00, 70.00, 'pcs', 5, NOW()),
-(2, 1, 'SKU-002', 'Test Product B', 50.00, 30.00, 'pcs', 3, NOW());
+INSERT INTO categories (id, company_id, name, created_at) VALUES
+(1, 1, 'Продукты', NOW()),
+(2, 1, 'Бытовая химия', NOW());
+
+INSERT INTO products (id, warehouse_id, category_id, sku, name, price, cost, unit, min_stock, created_at) VALUES
+(1, 1, 1, 'SKU-001', 'Test Product A', 100.00, 70.00, 'pcs', 5, NOW()),
+(2, 1, 2, 'SKU-002', 'Test Product B', 50.00, 30.00, 'pcs', 3, NOW());
 
 INSERT INTO product_stocks (product_id, warehouse_id, qty) VALUES
 (1, 1, 20),

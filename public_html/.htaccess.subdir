@@ -14,6 +14,8 @@ SetEnv ROUTER_HTACCESS 1
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    RewriteBase /your-subdir/
+
     RewriteRule ^__rewrite_probe$ __ping.php [L,QSA]
 
     RewriteRule ^assets/ - [L,NC]

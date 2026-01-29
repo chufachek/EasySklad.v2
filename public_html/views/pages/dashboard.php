@@ -1,7 +1,6 @@
 <?php
 $pageTitle = 'Easy склад · Дашборд';
 $page = 'dashboard';
-include __DIR__ . '/partials/layout-top.php';
 ?>
 <div class="page-header">
     <div>
@@ -83,7 +82,7 @@ include __DIR__ . '/partials/layout-top.php';
         <div class="card">
             <div class="card-header">
                 <h2>Последние заказы</h2>
-                <a class="link" href="/app/orders">Все заказы</a>
+                <a class="link" href="<?php echo base_url('/app/orders'); ?>">Все заказы</a>
             </div>
             <div id="dashboardOrders" class="table-wrap"></div>
         </div>
@@ -94,14 +93,14 @@ include __DIR__ . '/partials/layout-top.php';
     <div class="card">
         <div class="card-header">
             <h2>Топ товаров</h2>
-            <a class="link" href="/app/products">В каталог</a>
+            <a class="link" href="<?php echo base_url('/app/products'); ?>">В каталог</a>
         </div>
         <div id="dashboardTopProducts" class="table-wrap"></div>
     </div>
     <div class="card">
         <div class="card-header">
             <h2>Низкие остатки</h2>
-            <a class="link" href="/app/products">К товарам</a>
+            <a class="link" href="<?php echo base_url('/app/products'); ?>">К товарам</a>
         </div>
         <div id="dashboardLowStock" class="table-wrap"></div>
     </div>
@@ -113,4 +112,3 @@ include __DIR__ . '/partials/layout-top.php';
         <div class="activity-list" id="dashboardActivity"></div>
     </div>
 </div>
-<?php include __DIR__ . '/partials/layout-bottom.php'; ?>
