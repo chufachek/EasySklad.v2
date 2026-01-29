@@ -38,6 +38,7 @@ cp public_html/config/env.example .env
 - Укажите `DocumentRoot` на `public_html`.
 - В `public_html` лежит `index.php` (front controller) и `.htaccess` с rewrite-правилами.
 - Убедитесь, что `assets` доступен из web-root (можно использовать симлинк `public_html/assets -> ../assets`).
+ - Если файлы лежат не в реальном web-root (обычно `public_html`), то rewrite не сработает.
 
 **Если не Apache:**
 - Прокиньте все запросы на `public_html/index.php` через nginx или встроенный сервер PHP.
@@ -60,22 +61,50 @@ php -S localhost:8080 -t public_html
 - `/login`, `/register`, `/logout`
 - `/app`, `/app/dashboard`, `/app/products`, `/app/warehouses`
 
+## Диагностика web-root и mod_rewrite (обязательно при проблемах с ЧПУ)
+
+В `public_html` добавлены диагностические файлы:
+- `__ping.php` — показывает `PING OK` и параметры `REQUEST_URI`, `SCRIPT_NAME`, `DOCUMENT_ROOT`.
+- `__rewrite_test.html` — простая страница со ссылкой на `/__rewrite_probe`.
+- `__rewrite_probe` — работает ТОЛЬКО если включён mod_rewrite (переписывается на `__ping.php`).
+
+Порядок проверки:
+1. Откройте `/__ping.php` — должны увидеть `PING OK`.
+2. Откройте `/__rewrite_probe` — должны увидеть `PING OK`.
+
+Если `/__rewrite_probe` не открывается (403 или текст из файла), значит `.htaccess` не читается
+или `mod_rewrite`/`AllowOverride` отключены. В этом случае используйте fallback-режим:
+`/index.php?page=login` и ссылки будут генерироваться автоматически в query-формате.
+
 ## .htaccess (Apache)
 
 ### Вариант A — проект в корне домена
 Используйте `public_html/.htaccess` (без `RewriteBase`).
 
 ```apache
-<IfModule mod_rewrite.c>
-RewriteEngine On
+Options -MultiViews
 DirectoryIndex index.php
 
-RewriteRule ^assets/ - [L,NC]
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
+<Files "__rewrite_probe">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
+</Files>
 
-RewriteRule ^ index.php [QSA,L]
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteRule ^__rewrite_probe$ __ping.php [L,QSA]
+
+    RewriteRule ^assets/ - [L,NC]
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    RewriteRule ^ index.php [L,QSA]
 </IfModule>
 ```
 
@@ -83,22 +112,36 @@ RewriteRule ^ index.php [QSA,L]
 Скопируйте `public_html/.htaccess.subdir`, переименуйте в `.htaccess` и укажите `RewriteBase` на подпапку (например `/finances/`):
 
 ```apache
-<IfModule mod_rewrite.c>
-RewriteEngine On
+Options -MultiViews
 DirectoryIndex index.php
 
-RewriteBase /finances/
+<Files "__rewrite_probe">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
+</Files>
 
-RewriteRule ^assets/ - [L,NC]
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-RewriteRule ^ index.php [QSA,L]
+    RewriteBase /finances/
+
+    RewriteRule ^__rewrite_probe$ __ping.php [L,QSA]
+
+    RewriteRule ^assets/ - [L,NC]
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    RewriteRule ^ index.php [L,QSA]
 </IfModule>
 ```
 
 > В подпапке `RewriteBase` должен совпадать с реальным путём проекта относительно корня домена.
+> Если `/__ping.php` показывает `SCRIPT_NAME=/subdir/__ping.php`, значит нужен `RewriteBase /subdir/`.
 
 Если проект развёрнут в подпапке, также можно задать `BASE_PATH` в `.env`, например:
 ```
@@ -127,6 +170,7 @@ FORCE_HTTPS=true
 DEBUG=true
 ```
 Ошибки пишутся в `storage/logs/app.log`, а в production рекомендуем оставить `DEBUG=false`.
+В debug-режиме в шапке отображается индикатор `Routing: CLEAN` или `Routing: FALLBACK`.
 
 ## Health-check
 

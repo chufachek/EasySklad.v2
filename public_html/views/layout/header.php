@@ -6,6 +6,11 @@ if (!empty($isAuth)) {
 <header class="header">
     <div class="header-left">
         <div class="logo">Easy. <span>склад</span></div>
+        <?php if (defined('DEBUG') && DEBUG) : ?>
+            <div class="routing-indicator" style="margin-left:12px;font-size:12px;opacity:0.7;">
+                Routing: <?php echo strtoupper(htmlspecialchars(routing_mode())); ?>
+            </div>
+        <?php endif; ?>
     </div>
     <div class="header-selects">
         <label class="field">
