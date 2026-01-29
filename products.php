@@ -18,6 +18,9 @@ include __DIR__ . '/partials/layout-top.php';
             <option value="low">Низкий остаток</option>
             <option value="high">Хороший остаток</option>
         </select>
+        <select id="categoryFilter" class="choice-select">
+            <option value="all">Все категории</option>
+        </select>
     </div>
     <div id="productsTable" class="table-wrap"></div>
 </div>

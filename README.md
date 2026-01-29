@@ -42,7 +42,7 @@ composer install
 
 **Apache:**
 - Укажите `DocumentRoot` на корень репозитория (где находятся `index.php` и `assets`).
-- `.htaccess` уже настроен на роутинг и красивые URL.
+- `.htaccess` настроен на роутинг и красивые URL (см. варианты ниже).
 
 **Если не Apache:**
 - Прокиньте все запросы на `public_html/index.php` через nginx или встроенный сервер PHP.
@@ -65,6 +65,44 @@ php -S localhost:8080 -t .
 - `/login`, `/register`, `/logout`
 - `/app`, `/app/dashboard`, `/app/products`, `/app/warehouses`
 
+## .htaccess (Apache)
+
+### Вариант A — проект в корне домена
+Используйте `.htaccess` из корня репозитория.
+
+```apache
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+RewriteRule ^(assets|vendor)/ - [L,NC]
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^ index.php [QSA,L]
+</IfModule>
+```
+
+### Вариант B — проект в подпапке домена
+Скопируйте правила и укажите `RewriteBase` на подпапку (например `/finances/`):
+
+```apache
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /finances/
+
+RewriteRule ^(assets|vendor)/ - [L,NC]
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^ index.php [QSA,L]
+</IfModule>
+```
+
+> В подпапке `RewriteBase` должен совпадать с реальным путём проекта относительно корня домена.
+
 ## HTTPS
 
 ### Боевой сервер
@@ -80,6 +118,13 @@ php -S localhost:8080 -t .
 FORCE_HTTPS=true
 ```
 Если флаг включен, HTTP-запросы будут перенаправлены на HTTPS с учетом заголовков reverse-proxy (`X-Forwarded-Proto`).
+
+## Debug-режим
+В `.env` можно включить подробные ошибки:
+```
+DEBUG=true
+```
+Ошибки пишутся в `storage/logs/app.log`, а в production рекомендуем оставить `DEBUG=false`.
 
 ## Авторизация
 
@@ -167,6 +212,15 @@ Authorization: Bearer <token>
 - `POST /api/companies/:companyId/services` `{ name, price, description? }`
 - `PUT /api/services/:id` `{ name, price, description? }`
 - `DELETE /api/services/:id`
+
+### Categories
+- `GET /api/companies/:companyId/categories`
+- `POST /api/companies/:companyId/categories` `{ name }`
+- `PUT /api/categories/:id` `{ name }`
+- `DELETE /api/categories/:id`
+
+### Dashboard
+- `GET /api/dashboard?companyId=&warehouseId=&range=7d`
 
 ## Тестовые данные
 - Пользователь: `test@example.com`

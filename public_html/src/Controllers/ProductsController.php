@@ -7,6 +7,7 @@ use Core\Helpers;
 use Models\CompanyModel;
 use Models\WarehouseModel;
 use Models\ProductModel;
+use Models\CategoryModel;
 
 class ProductsController
 {
@@ -83,8 +84,16 @@ class ProductsController
         if (ProductModel::findBySku($warehouseId, $data['sku'])) {
             Response::error('CONFLICT', 'SKU already exists', 409);
         }
+        $categoryId = isset($data['category_id']) && $data['category_id'] !== '' ? intval($data['category_id']) : null;
+        if ($categoryId) {
+            $category = CategoryModel::findById($categoryId);
+            if (!$category || intval($category['company_id']) !== intval($company['id'])) {
+                Response::error('VALIDATION_ERROR', 'Invalid category', 400, array('category_id' => 'Invalid category'));
+            }
+        }
         $productId = ProductModel::create(
             $warehouseId,
+            $categoryId,
             $data['sku'],
             $data['name'],
             $data['price'],
@@ -92,7 +101,13 @@ class ProductsController
             isset($data['unit']) ? $data['unit'] : null,
             isset($data['min_stock']) ? $data['min_stock'] : 0
         );
-        Response::success(array('id' => $productId, 'warehouse_id' => $warehouseId, 'sku' => $data['sku'], 'name' => $data['name']), 201);
+        Response::success(array(
+            'id' => $productId,
+            'warehouse_id' => $warehouseId,
+            'category_id' => $categoryId,
+            'sku' => $data['sku'],
+            'name' => $data['name']
+        ), 201);
     }
 
     public static function update($request)
@@ -135,8 +150,16 @@ class ProductsController
         if ($existing && intval($existing['id']) !== intval($productId)) {
             Response::error('CONFLICT', 'SKU already exists', 409);
         }
+        $categoryId = isset($data['category_id']) && $data['category_id'] !== '' ? intval($data['category_id']) : null;
+        if ($categoryId) {
+            $category = CategoryModel::findById($categoryId);
+            if (!$category || intval($category['company_id']) !== intval($company['id'])) {
+                Response::error('VALIDATION_ERROR', 'Invalid category', 400, array('category_id' => 'Invalid category'));
+            }
+        }
         ProductModel::update(
             $productId,
+            $categoryId,
             $data['sku'],
             $data['name'],
             $data['price'],
