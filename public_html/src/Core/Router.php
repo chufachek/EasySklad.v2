@@ -149,6 +149,34 @@ class Router
         }
     }
 
+    public function debugMatch($method, $uri)
+    {
+        $requestMethod = $method ? $method : 'GET';
+        $requestUri = $this->normalizeUri($uri);
+
+        foreach ($this->routes as $route) {
+            list($methods, $pattern, $callback) = $route;
+            if (!$this->matchMethod($methods, $requestMethod)) {
+                continue;
+            }
+            if ($this->matchRoute($pattern, $requestUri, $params)) {
+                return array(
+                    'matched' => true,
+                    'pattern' => $pattern,
+                    'handler' => $this->describeCallback($callback),
+                    'params' => $params,
+                );
+            }
+        }
+
+        return array(
+            'matched' => false,
+            'pattern' => null,
+            'handler' => null,
+            'params' => array(),
+        );
+    }
+
     private function map($method, $pattern, $callback)
     {
         $pattern = $this->namespace . $pattern;
@@ -159,22 +187,48 @@ class Router
     private function getCurrentUri()
     {
         $uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
-        $uri = parse_url($uri, PHP_URL_PATH);
+        return $this->normalizeUri($uri);
+    }
 
-        if ($this->basePath && strpos($uri, $this->basePath) === 0) {
-            $uri = substr($uri, strlen($this->basePath));
+    private function normalizeUri($uri)
+    {
+        $path = parse_url($uri, PHP_URL_PATH);
+        if ($path === null || $path === false) {
+            $path = '/';
         }
 
-        if ($uri === '') {
-            $uri = '/';
+        if ($this->basePath && strpos($path, $this->basePath) === 0) {
+            $path = substr($path, strlen($this->basePath));
         }
 
-        return $uri;
+        if ($path === '') {
+            $path = '/';
+        }
+
+        return $path;
     }
 
     private function matchMethod($methods, $requestMethod)
     {
         return preg_match('#^(' . $methods . ')$#i', $requestMethod);
+    }
+
+    private function describeCallback($callback)
+    {
+        if (is_string($callback)) {
+            return $callback;
+        }
+
+        if (is_array($callback) && count($callback) === 2) {
+            $class = is_object($callback[0]) ? get_class($callback[0]) : $callback[0];
+            return $class . '::' . $callback[1];
+        }
+
+        if ($callback instanceof \Closure) {
+            return 'closure';
+        }
+
+        return 'callable';
     }
 
     private function matchRoute($route, $uri, &$params = array())

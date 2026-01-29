@@ -64,13 +64,16 @@ php -S localhost:8080 -t public_html
 ## Диагностика web-root и mod_rewrite (обязательно при проблемах с ЧПУ)
 
 В `public_html` добавлены диагностические файлы:
-- `__ping.php` — показывает `PING OK` и параметры `REQUEST_URI`, `SCRIPT_NAME`, `DOCUMENT_ROOT`.
+- `__ping.php` — показывает `PING OK`, переменные запроса и `ROUTER_HTACCESS` (если `.htaccess` прочитан).
 - `__rewrite_test.html` — простая страница со ссылкой на `/__rewrite_probe`.
 - `__rewrite_probe` — работает ТОЛЬКО если включён mod_rewrite (переписывается на `__ping.php`).
+- `__route_selftest.php` — self-test всех ключевых URL без `*.php`.
 
 Порядок проверки:
-1. Откройте `/__ping.php` — должны увидеть `PING OK`.
+1. Откройте `/__ping.php` — должны увидеть `PING OK` и `ROUTER_HTACCESS=1`.
 2. Откройте `/__rewrite_probe` — должны увидеть `PING OK`.
+3. Откройте `/__health` — должны увидеть `OK ROUTER`.
+4. Откройте `/__route_selftest.php` — все строки должны быть `matched=yes`.
 
 Если `/__rewrite_probe` не открывается (403 или текст из файла), значит `.htaccess` не читается
 или `mod_rewrite`/`AllowOverride` отключены. В этом случае используйте fallback-режим:
@@ -84,6 +87,7 @@ php -S localhost:8080 -t public_html
 ```apache
 Options -MultiViews
 DirectoryIndex index.php
+SetEnv ROUTER_HTACCESS 1
 
 <Files "__rewrite_probe">
     <IfModule mod_authz_core.c>
@@ -114,6 +118,7 @@ DirectoryIndex index.php
 ```apache
 Options -MultiViews
 DirectoryIndex index.php
+SetEnv ROUTER_HTACCESS 1
 
 <Files "__rewrite_probe">
     <IfModule mod_authz_core.c>
@@ -142,6 +147,7 @@ DirectoryIndex index.php
 
 > В подпапке `RewriteBase` должен совпадать с реальным путём проекта относительно корня домена.
 > Если `/__ping.php` показывает `SCRIPT_NAME=/subdir/__ping.php`, значит нужен `RewriteBase /subdir/`.
+> При включенном `.htaccess` переменная `ROUTER_HTACCESS` должна быть равна `1`.
 
 Если проект развёрнут в подпапке, также можно задать `BASE_PATH` в `.env`, например:
 ```
@@ -180,7 +186,7 @@ DEBUG=true
 GET /__health
 ```
 
-Он возвращает `OK` и базовую информацию о base path и HTTPS.
+Он возвращает `OK ROUTER` и данные о `uri`, `basePath`, `routingMode`, `timestamp`.
 
 ## Авторизация
 

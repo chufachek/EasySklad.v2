@@ -17,15 +17,16 @@ $requireAuth = function () {
 
 $router->get('/__health', function () {
     header('Content-Type: text/plain; charset=utf-8');
-    echo "OK\n";
-    echo 'base_path=' . base_path() . "\n";
-    echo 'https=' . (is_https() ? '1' : '0') . "\n";
-    echo 'request_uri=' . (isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '') . "\n";
+    echo "OK ROUTER\n";
+    echo 'uri=' . (isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '') . "\n";
+    echo 'basePath=' . base_path() . "\n";
+    echo 'routingMode=' . routing_mode() . "\n";
+    echo 'timestamp=' . date('c') . "\n";
 });
 
 $router->get('/', function () {
     if (!empty($_SESSION['user_id'])) {
-        redirect('/app');
+        redirect('/app/dashboard');
     }
     redirect('/login');
 });
@@ -146,7 +147,7 @@ $router->get('/logout', function () {
     redirect('/login');
 });
 
-$router->before('GET|POST', '/app/.*', function () use ($requireAuth) {
+$router->before('GET|POST', '/app(\/.*)?', function () use ($requireAuth) {
     $requireAuth();
 });
 

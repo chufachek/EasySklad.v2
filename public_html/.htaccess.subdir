@@ -1,5 +1,6 @@
 Options -MultiViews
 DirectoryIndex index.php
+SetEnv ROUTER_HTACCESS 1
 
 <Files "__rewrite_probe">
     <IfModule mod_authz_core.c>
